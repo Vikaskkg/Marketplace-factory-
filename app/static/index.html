@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Hub</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='white'/%3E%3Ccircle cx='8' cy='9' r='2.2' fill='white' opacity='.7'/%3E%3Ccircle cx='24' cy='9' r='2.2' fill='white' opacity='.7'/%3E%3Ccircle cx='16' cy='25' r='2.2' fill='white' opacity='.7'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg:#f5f6fa; --surface:#fff; --fg:#111827; --muted:#6b7280; --line:#e5e7eb; --line-strong:#d1d5db;
+    --accent:#4f46e5; --accent-2:#7c3aed; --accent-soft:#eef2ff; --accent-fg:#fff;
+    --ok:#15803d; --bad:#b91c1c; --warn-bg:#fef3c7; --warn-fg:#78350f;
+    --shadow:0 1px 2px rgba(16,24,40,.05); --shadow-lg:0 12px 28px -8px rgba(16,24,40,.18);
+    --radius:12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0d1017; --surface:#151a23; --fg:#e8eaf0; --muted:#9aa3b2; --line:#252c39; --line-strong:#364054;
+      --accent:#818cf8; --accent-2:#a78bfa; --accent-soft:#1d2240; --accent-fg:#0d1017;
+      --ok:#4ade80; --bad:#f87171; --warn-bg:#3b2f0b; --warn-fg:#fde68a;
+      --shadow:none; --shadow-lg:0 12px 28px -8px rgba(0,0,0,.6);
+    }
+  }
+  * { box-sizing:border-box }
+  [hidden] { display:none !important }
+  html { scroll-behavior:smooth }
+  body { margin:0; font:14px/1.5 Inter,"Segoe UI",system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--fg); -webkit-font-smoothing:antialiased }
+  a { color:var(--accent) }
+
+  /* top bar */
+  .topbar { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line) }
+  .topbar-in { max-width:1200px; margin:auto; padding:0 20px; height:58px; display:flex; align-items:center; gap:24px }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; letter-spacing:-.01em; color:var(--fg); text-decoration:none }
+  .logo { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); display:grid; place-items:center; box-shadow:0 2px 8px -2px var(--accent) }
+  .topnav { display:flex; gap:2px; flex:1; overflow-x:auto }
+  .topnav a { padding:7px 12px; border-radius:8px; color:var(--muted); text-decoration:none; font-weight:500; white-space:nowrap }
+  .topnav a:hover { color:var(--fg); background:var(--accent-soft) }
+  .topnav a.on { color:var(--accent); background:var(--accent-soft) }
+  #stamp { color:var(--muted); font-size:12px; white-space:nowrap }
+  .demo { background:var(--warn-bg); color:var(--warn-fg); padding:7px 16px; text-align:center; font-size:13px; font-weight:500 }
+
+  /* page header */
+  header { max-width:1200px; margin:auto; padding:28px 20px 0 }
+  #back { display:inline-flex; align-items:center; gap:4px; margin-bottom:6px; font-size:13px; text-decoration:none; color:var(--muted) }
+  #back:hover { color:var(--accent) }
+  h1 { margin:0; font-size:26px; letter-spacing:-.02em; line-height:1.2 }
+  .sub { color:var(--muted); margin:6px 0 20px; max-width:70ch }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px }
+
+  /* controls */
+  input,select,textarea,button { font:inherit; color:var(--fg) }
+  input,select,textarea { padding:8px 11px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); transition:border-color .15s, box-shadow .15s }
+  input:focus,select:focus,textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent) }
+  input { flex:1; min-width:180px }
+  button { cursor:pointer; padding:8px 14px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); font-weight:500; transition:background .15s, border-color .15s, transform .05s }
+  button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent) }
+  button:active:not(:disabled) { transform:translateY(1px) }
+  button:disabled { opacity:.55; cursor:default }
+  button.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:var(--accent-fg); border-color:transparent; box-shadow:0 1px 2px rgba(0,0,0,.15) }
+  button.primary:hover:not(:disabled) { color:var(--accent-fg); filter:brightness(1.07) }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px }
+
+  /* tabs */
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--line); overflow-x:auto }
+  .tabs button { border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:var(--muted); white-space:nowrap; padding:10px 12px; margin-bottom:-1px }
+  .tabs button:hover { color:var(--fg) }
+  .tabs button.on { color:var(--fg); border-color:var(--accent); font-weight:600 }
+  .tabs .n { background:var(--accent-soft); color:var(--accent); border-radius:10px; padding:0 7px; margin-left:6px; font-size:12px; font-weight:600 }
+
+  /* content grid + cards */
+  main { max-width:1200px; margin:20px auto; padding:0 20px 56px; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:7px; box-shadow:var(--shadow); transition:border-color .15s, box-shadow .15s, transform .15s }
+  main > .card:not(.form):not(.hero):hover { border-color:var(--line-strong); box-shadow:var(--shadow-lg) }
+  .card h3 { margin:0; font-size:15px; font-weight:650; letter-spacing:-.01em }
+  .card p { margin:0; color:var(--muted); overflow-wrap:anywhere }
+  .meta { font-size:12px; color:var(--muted); word-break:break-all }
+  .chips { display:flex; gap:5px; flex-wrap:wrap }
+  .chip { background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:2px 9px; font-size:12px; font-weight:500 }
+  .card > a { font-size:12px; margin-top:auto; font-weight:500; text-decoration:none }
+  .card > a:hover { text-decoration:underline }
+  .empty,.err { grid-column:1/-1; text-align:center; color:var(--muted); padding:56px 0 }
+  .err { color:var(--bad) }
+  .acts { display:flex; gap:6px; margin-top:8px; padding-top:10px; border-top:1px solid var(--line) }
+  .acts button { padding:4px 11px; font-size:12px }
+  .acts button[data-act=del] { color:var(--bad); margin-left:auto }
+  .acts button[data-act=del]:hover:not(:disabled) { border-color:var(--bad); color:var(--bad) }
+
+  /* forms */
+  .form { grid-column:1/-1; max-width:680px; gap:14px; padding:22px } .form.wide { max-width:860px }
+  .form h3 { font-size:17px }
+  .form label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.03em }
+  .form label input,.form label select,.form label textarea,.form label div { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fg); font-size:14px }
+  .form textarea { min-height:150px; resize:vertical }
+  .ok { color:var(--ok) } .bad { color:var(--bad) }
+
+  /* natural language */
+  .ask { display:flex; gap:8px; margin-bottom:14px }
+  .ask input { padding:12px 14px; font-size:15px; border-radius:10px }
+  .ask button { padding:0 22px; border-radius:10px }
+  .note { grid-column:1/-1; display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--muted) }
+  .note b { color:var(--fg) } .note button { margin-left:auto; padding:4px 12px; font-size:12px }
+  .badge { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--accent-2) }
+  .why { color:var(--fg) !important; font-size:13px }
+  .draft { border:1px dashed var(--line-strong); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; background:var(--accent-soft) }
+  .draft textarea { min-height:70px; background:var(--surface) }
+  #dnote { font-size:13px; color:var(--fg); text-transform:none; letter-spacing:0; font-weight:400 }
+  #dnote ul { margin:4px 0 0; padding-left:18px } #dnote .warn { color:var(--bad) }
+
+  /* home */
+  .banner { grid-column:1/-1; border-radius:16px; padding:34px 32px; color:#fff; position:relative; overflow:hidden;
+    background:radial-gradient(900px 300px at 90% -20%, rgba(255,255,255,.22), transparent 60%), linear-gradient(135deg,#4338ca,#7c3aed 60%,#a855f7) }
+  .banner h2 { margin:0 0 6px; font-size:28px; letter-spacing:-.02em }
+  .banner p { margin:0; opacity:.9; max-width:60ch; font-size:15px }
+  .stats { display:flex; gap:28px; flex-wrap:wrap; margin-top:22px }
+  .stat b { display:block; font-size:24px; line-height:1.1 } .stat span { font-size:12px; opacity:.85 }
+  .hero { text-decoration:none; color:inherit; padding:22px; gap:10px; min-height:170px }
+  .hero:hover { border-color:var(--accent); box-shadow:var(--shadow-lg); transform:translateY(-2px) }
+  .hero .ico { width:42px; height:42px; border-radius:10px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent) }
+  .hero h3 { font-size:17px }
+  .hero .go { margin-top:auto; font-weight:600; font-size:13px; color:var(--accent) }
+
+  /* chat dialog */
+  dialog { width:min(580px,92vw); border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--fg); padding:18px; box-shadow:var(--shadow-lg) }
+  dialog::backdrop { background:rgba(10,12,20,.55); backdrop-filter:blur(2px) }
+  #clog { height:260px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:10px; margin:10px 0; white-space:pre-wrap; background:var(--bg) }
+  #clog p { margin:0 0 10px } #clog .u { color:var(--accent); font-weight:500 }
+
+  footer { max-width:1200px; margin:0 auto; padding:0 20px 28px; color:var(--muted); font-size:12px }
+  @media (max-width:720px) { #stamp { display:none } .topbar-in { gap:12px } h1 { font-size:22px } .banner { padding:24px 20px } }
+</style>
+</head>
+<body>
+<div id="demo" class="demo" hidden>Demo mode: showing sample data, not your Azure resources.</div>
+<div class="topbar"><div class="topbar-in">
+  <a class="brand" href="#/">
+    <span class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="1.6"/><circle cx="19" cy="6" r="1.6"/><circle cx="12" cy="20" r="1.6"/><path d="M6.3 7.2 10 10.5M17.7 7.2 14 10.5M12 15v3.4"/></svg></span>
+    Agent Hub
+  </a>
+  <nav class="topnav" id="topnav">
+    <a href="#/marketplace" data-v="marketplace">Marketplace</a>
+    <a href="#/factory" data-v="factory">Agent Factory</a>
+    <a href="#/guardrails" data-v="guardrails">Guardrails</a>
+    <a href="#/playground" data-v="playground">Playground</a>
+  </nav>
+  <span id="stamp"></span>
+</div></div>
+<header>
+  <a id="back" href="#/" hidden>&larr; Home</a>
+  <h1 id="title">Agent Hub</h1>
+  <p class="sub" id="sub"></p>
+  <form class="ask" id="ask" hidden>
+    <input id="askq" required minlength="3" maxlength="500" autocomplete="off" aria-label="Ask in plain English"
+      placeholder="Ask in plain English, e.g. “an agent that reviews supplier contracts” or “which tools can read GitHub?”">
+    <button class="primary" id="askgo">Ask</button>
+  </form>
+  <div class="bar" id="bar">
+    <input id="q" type="search" placeholder="Search name, model, project, tool..." aria-label="Search">
+    <select id="project" aria-label="Project"><option value="">All projects</option></select>
+    <button id="refresh" class="primary">Refresh from Azure</button>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main id="grid"></main>
+<footer>Agent Hub &middot; Azure AI Foundry</footer>
+<dialog id="chat">
+  <strong id="ctitle"></strong>
+  <div id="clog"></div>
+  <form id="cchat" style="display:flex;gap:6px"><input id="cin" required maxlength="4000" placeholder="Ask the agent…" autocomplete="off"><button class="primary">Send</button><button type="button" id="cclose">Close</button></form>
+</dialog>
+
+<script>
+const TABS = [["agents","Agents"],["deployments","Models"],["mcp","MCP servers"],["knowledge","Knowledge bases"],["guardrails","Guardrails"]];
+let editing = null, tab = "agents", counts = {}, errors = [], shown = [], chatAgent = null, chatPrev = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const chips = a => (a||[]).length ? `<div class="chips">${a.map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div>` : "";
+const where = i => esc([i.account, i.project].filter(Boolean).join(" / "));
+const link = i => i.portalUrl && /^https:\/\//.test(i.portalUrl) ? `<a href="${esc(i.portalUrl)}" target="_blank" rel="noopener">Open in Foundry</a>` : "";
+
+const RENDER = {
+  agents: (i, n) => `<h3>${esc(i.name)}</h3><p>${esc(i.description) || "No description"}</p>
+    <div class="meta">${where(i)} · ${esc(i.model || "no model")} · ${esc(i.generation)}</div>
+    ${chips([...(i.tools || []), i.guardrail && `guardrail: ${i.guardrail}`].filter(Boolean))}${i.mcpServers?.length ? `<div class="meta">MCP: ${esc(i.mcpServers.join(", "))}</div>` : ""}
+    ${i.knowledge?.length ? `<div class="meta">Knowledge: ${esc(i.knowledge.join(", "))}</div>` : ""}${link(i)}
+    ${i.generation === "new" ? `<div class="acts"><button data-act="chat" data-n="${n}">Chat</button><button data-act="edit" data-n="${n}">Edit</button><button data-act="del" data-n="${n}">Delete</button></div>` : ""}`,
+  deployments: i => `<h3>${esc(i.name)}</h3><p>${esc(i.publisher)} ${esc(i.model)} ${esc(i.version)}</p>
+    <div class="meta">${where(i)} · ${esc(i.location)}</div>
+    ${chips([i.sku, i.capacity != null && `capacity ${i.capacity}`, i.state, i.guardrail && `guardrail: ${i.guardrail}`].filter(Boolean))}`,
+  guardrails: i => {
+    const lv = {}; (i.filters || []).filter(f => f.source !== "Completion").forEach(f => lv[f.name] = f.severityThreshold);
+    return `<h3>${esc(i.name)}</h3><p>${esc(i.type || "")}${i.basePolicy ? " · based on " + esc(i.basePolicy) : ""}</p>
+    <div class="meta">${where(i)}</div>
+    ${chips(Object.entries(lv).map(([k, v]) => `${k}: ${v}`))}
+    <div class="meta">${i.usedBy?.length ? "Used by: " + esc(i.usedBy.join(", ")) : "Not assigned to any deployment"}</div>`;
+  },
+  mcp: i => `<h3>${esc(i.name)}</h3><p>${esc(i.target) || "No endpoint"}</p>
+    <div class="meta">${where(i)}</div>${chips([i.category, i.authType, i.source].filter(Boolean))}${link(i)}`,
+  knowledge: i => `<h3>${esc(i.name)}</h3><p>${esc(i.type)}${i.target ? " · " + esc(i.target) : ""}</p>
+    <div class="meta">${where(i)}</div>${chips([i.category, i.source].filter(Boolean))}${link(i)}`,
+};
+
+function drawTabs() {
+  $("tabs").innerHTML = TABS.map(([k,l]) =>
+    `<button data-k="${k}" class="${k===tab?"on":""}">${l}<span class="n">${counts[k] ?? "…"}</span></button>`).join("");
+}
+
+async function drawCreate(pre) {
+  $("grid").innerHTML = '<div class="empty">Loading…</div>';
+  let projs = [];
+  try {
+    const r = await fetch("/api/projects");
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    projs = await r.json();
+  } catch (e) { $("grid").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  if (!projs.length) { $("grid").innerHTML = '<div class="empty">No Foundry projects found to create an agent in.</div>'; return; }
+  $("grid").innerHTML = `<form class="card form" id="cform">
+    <h3>${pre ? "Edit agent (saves a new version)" : "Create a prompt agent"}</h3>
+    ${pre ? "" : `<div class="draft"><label>Describe the agent you want, in plain English
+        <textarea id="dq" maxlength="500" placeholder="e.g. An agent that answers employee questions about engineering docs and can look at GitHub issues"></textarea></label>
+      <div><button type="button" class="primary" id="dgo">Draft with AI</button> <span class="meta">Fills the form below for you to review. Nothing is created until you press Create.</span></div>
+      <div id="dnote"></div></div>`}
+    <label>Project<select id="cproj">${projs.map((p,i) => `<option value="${i}">${esc(p.account)} / ${esc(p.name)}</option>`).join("")}</select></label>
+    <label>Name (letters, digits, hyphens)<input id="cname" required maxlength="63" pattern="[A-Za-z0-9][A-Za-z0-9\\-]*" placeholder="my-first-agent"></label>
+    <label>Model deployment<select id="cmodel" required></select></label>
+    <label>Description (optional)<input id="cdesc" maxlength="500"></label>
+    <label>Instructions<textarea id="cinst" required placeholder="You are a helpful assistant that…"></textarea></label>
+    <label>Guardrail (content filter)<select id="cguard"></select></label>
+    <label>Knowledge bases (project indexes, via Azure AI Search)<div id="ckb"></div></label>
+    <label>MCP servers (from this project)<div id="cmcp"></div></label>
+    <div><button class="primary" id="cgo" type="submit">${pre ? "Save new version" : "Create agent"}</button> <span id="cmsg"></span></div>
+  </form>`;
+  const have = new Set((pre?.toolDefs || []).filter(t => t.type === "mcp").map(t => t.server_url));
+  const haveKb = new Set((pre?.toolDefs || []).filter(t => t.type === "azure_ai_search")
+    .flatMap(t => (t.azure_ai_search?.indexes || []).map(x => x.index_name)));
+  const fill = () => {
+    const p = projs[$("cproj").value];
+    $("cmodel").innerHTML = p.models.length ? p.models.map(x => `<option ${x===pre?.model?"selected":""}>${esc(x)}</option>`).join("") : "<option value=''>No deployments in this account</option>";
+    $("cguard").innerHTML = '<option value="">None (model default)</option>' +
+      (p.guardrails || []).map(g => `<option ${g===pre?.guardrail?"selected":""}>${esc(g)}</option>`).join("");
+    $("ckb").innerHTML = (p.knowledge || []).length ? p.knowledge.map(k => `<div><input type="checkbox" class="kbbox" value="${esc(k.name)}" ${haveKb.has(k.name)?"checked":""}> ${esc(k.name)} <span class="meta">via ${esc(k.connection)}</span></div>`).join("") : '<span class="meta">No indexes found in this project</span>';
+    $("cmcp").innerHTML = p.mcp.length ? p.mcp.map(m => `<div><input type="checkbox" class="mcpbox" value="${esc(m.target)}" ${have.has(m.target)?"checked":""}> ${esc(m.name)} <span class="meta">${esc(m.target)}</span></div>`).join("") : '<span class="meta">None found</span>';
+  };
+  $("cproj").onchange = fill;
+  if (pre) {
+    const i = projs.findIndex(p => p.name === pre.project && p.account === pre.account);
+    if (i >= 0) $("cproj").value = i;
+    $("cname").value = pre.name; $("cname").readOnly = true; $("cproj").disabled = true;
+    $("cdesc").value = pre.description || ""; $("cinst").value = pre.instructions || "";
+  }
+  fill();
+  if (!pre) $("dgo").onclick = async () => {
+    const q = $("dq").value.trim(), p = projs[$("cproj").value], note = $("dnote");
+    if (q.length < 3) { note.innerHTML = '<span class="warn">Describe the agent first.</span>'; return; }
+    $("dgo").disabled = true; note.textContent = "Drafting…";
+    try {
+      const d = await post("/api/agents/draft", {query: q, account: p.account, project: p.name});
+      if (!d.draft) { note.innerHTML = `<span class="warn">${esc(d.note || "No draft produced.")}</span>`; return; }
+      const x = d.draft;
+      $("cname").value = x.name || ""; $("cdesc").value = x.description || ""; $("cinst").value = x.instructions || "";
+      if ([...$("cmodel").options].some(o => o.value === x.model)) $("cmodel").value = x.model;
+      $("cguard").value = x.guardrail || "";
+      document.querySelectorAll(".mcpbox").forEach(b => b.checked = (x.mcp || []).includes(b.value));
+      document.querySelectorAll(".kbbox").forEach(b => b.checked = (x.knowledge || []).includes(b.value));
+      const why = Object.entries(d.reasons || {}).map(([k, v]) => `<li><b>${esc(k)}</b>: ${esc(v)}</li>`).join("");
+      note.innerHTML = `<b>${d.mode === "ai" ? "AI draft" : "Basic draft"} ready.</b> Review every field before creating.`
+        + (d.note ? `<div class="warn">${esc(d.note)}</div>` : "")
+        + (why ? `<ul>${why}</ul>` : "")
+        + ((d.missing || []).length ? `<div class="warn">Not available in this project: ${d.missing.map(esc).join("; ")}</div>` : "");
+    } catch (err) { note.innerHTML = `<span class="warn">${esc(err.message)}</span>`; }
+    finally { $("dgo").disabled = false; }
+  };
+  $("cform").onsubmit = async e => {
+    e.preventDefault();
+    const p = projs[$("cproj").value], msg = $("cmsg");
+    $("cgo").disabled = true; msg.className = ""; msg.textContent = "Creating…";
+    try {
+      const r = await fetch("/api/agents/create", {method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({project:p.name, account:p.account, name:$("cname").value.trim(), model:$("cmodel").value,
+                              instructions:$("cinst").value, description:$("cdesc").value,
+                              mcp:[...document.querySelectorAll(".mcpbox:checked")].map(b => b.value), knowledge:[...document.querySelectorAll(".kbbox:checked")].map(b => b.value), keep_tools:!!pre, guardrail:$("cguard").value || null})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Invalid input");
+      msg.className = "ok"; msg.innerHTML = `Created "${esc(d.name)}"${d.version ? " (version " + esc(d.version) + ")" : ""}. Find it in the <a href="#/marketplace">Marketplace</a> after a refresh.`;
+    } catch (err) { msg.className = "bad"; msg.textContent = err.message; }
+    finally { $("cgo").disabled = false; }
+  };
+}
+
+async function load() {
+  const p = new URLSearchParams({q: $("q").value, project: $("project").value});
+  $("grid").innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const r = await fetch(`/api/${tab}?${p}`);
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const items = shown = await r.json();
+    $("grid").innerHTML = items.length
+      ? items.map((i, n) => `<div class="card">${RENDER[tab](i, n)}</div>`).join("")
+      : `<div class="empty">Nothing found.${errors.length ? `<br><small>Discovery errors:<br>${errors.map(esc).join("<br>")}</small>` : ""}</div>`;
+  } catch (e) { $("grid").innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+
+async function summary() {
+  try {
+    const s = await (await fetch("/api/summary")).json();
+    counts = s.counts; $("demo").hidden = !s.demo;
+    $("stamp").textContent = `Scanned ${new Date(s.fetchedAt*1000).toLocaleString([], {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"})}${s.refreshing ? " · refreshing…" : ""}`;
+    $("stamp").title = s.refreshError ? `Last refresh failed, showing saved data: ${s.refreshError}` : (s.fromDisk ? "Loaded from the saved local cache" : "");
+    if (s.refreshing) setTimeout(summary, 4000);   // pick up the fresh catalog when the background scan ends
+    errors = s.errors || [];
+    if (!location.hash.replace(/^#\/?/, "")) renderHome();   // fill in the live counts
+    const lists = await Promise.all(["agents","mcp","knowledge"].map(k => fetch(`/api/${k}`).then(r => r.json())));
+    const names = [...new Set([...(s.projects || []), ...lists.flat().map(a => a.project)].filter(Boolean))].sort();
+    const cur = $("project").value;
+    $("project").innerHTML = '<option value="">All projects</option>' + names.map(n => `<option ${n===cur?"selected":""}>${esc(n)}</option>`).join("");
+  } catch {}
+  drawTabs();
+}
+
+const ref = a => ({project: a.project, account: a.account, name: a.name});
+const post = (u, b) => fetch(u, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(b)})
+  .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Invalid input"); return d; });
+const logLine = (cls, t) => { const p = document.createElement("p"); p.className = cls; p.textContent = t; $("clog").append(p); $("clog").scrollTop = 1e9; };
+
+const TAB_OF = {agent: "agents", model: "deployments", mcp: "mcp", knowledge: "knowledge", guardrail: "guardrails"};
+const TYPE_LABEL = {agent: "Agent", model: "Model", mcp: "MCP server", knowledge: "Knowledge base", guardrail: "Guardrail"};
+$("ask").onsubmit = async e => {
+  e.preventDefault();
+  const q = $("askq").value.trim();
+  $("askgo").disabled = true; $("grid").innerHTML = '<div class="empty">Searching…</div>';
+  try {
+    const d = await post("/api/discover", {query: q});
+    shown = d.results;
+    $("grid").innerHTML = `<div class="note"><span><b>${d.mode === "ai" ? "AI-ranked" : "Keyword"} results</b> for “${esc(q)}”</span>
+      ${d.note ? `<span class="bad">${esc(d.note)}</span>` : ""}<button type="button" data-act="clear">Back to catalog</button></div>` +
+      (d.results.length ? d.results.map((r, n) => `<div class="card"><span class="badge">${esc(TYPE_LABEL[r.type])}</span>
+        <h3>${esc(r.name)}</h3><p class="why">${esc(r.reason)}</p><div class="meta">${esc([r.account, r.project].filter(Boolean).join(" / "))}</div>
+        <div class="acts"><button data-act="open" data-n="${n}">Open in catalog</button></div></div>`).join("")
+       : '<div class="empty">Nothing matched. Try different words, or browse the tabs.</div>');
+  } catch (err) { $("grid").innerHTML = `<div class="err">${esc(err.message)}</div>`; }
+  finally { $("askgo").disabled = false; }
+};
+
+$("grid").onclick = async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  if (b.dataset.act === "clear") { $("askq").value = ""; drawTabs(); return load(); }
+  const a = shown[+b.dataset.n];
+  if (b.dataset.act === "open") {
+    tab = TAB_OF[a.type]; $("q").value = a.name; $("project").value = ""; drawTabs(); return load();
+  }
+  if (b.dataset.act === "chat") {
+    chatAgent = a; chatPrev = null; $("ctitle").textContent = `Chat with ${a.name}`; $("clog").innerHTML = ""; $("chat").showModal();
+  } else if (b.dataset.act === "edit") {
+    editing = a; location.hash = "#/factory";
+  } else if (b.dataset.act === "del" && confirm(`Delete agent "${a.name}" and all its versions? This cannot be undone.`)) {
+    b.disabled = true;
+    try { await post("/api/agents/delete", ref(a)); await load(); }
+    catch (err) { alert(err.message); b.disabled = false; }
+  }
+};
+$("cclose").onclick = () => $("chat").close();
+$("cchat").onsubmit = async e => {
+  e.preventDefault();
+  const m = $("cin").value; $("cin").value = ""; logLine("u", "You: " + m);
+  try {
+    const d = await post("/api/agents/chat", {...ref(chatAgent), message: m, previous: chatPrev});
+    chatPrev = d.id; logLine("", d.text);
+  } catch (err) { logLine("bad", err.message); }
+};
+$("tabs").onclick = e => { const b = e.target.closest("button"); if (b) { tab = b.dataset.k; drawTabs(); load(); } };
+$("q").oninput = (() => { let t; return () => { clearTimeout(t); t = setTimeout(load, 250); }; })();
+$("project").onchange = load;
+$("refresh").onclick = async () => {
+  $("refresh").disabled = true; $("refresh").textContent = "Scanning…";
+  try { await fetch("/api/refresh", {method:"POST"}); await summary(); await load(); }
+  finally { $("refresh").disabled = false; $("refresh").textContent = "Refresh from Azure"; }
+};
+const getJSON = u => fetch(u).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.statusText); return d; });
+
+async function drawGuardrails() {
+  $("grid").innerHTML = '<div class="empty">Loading…</div>';
+  let gs, accs;
+  try { [gs, accs] = await Promise.all([getJSON("/api/guardrails"), getJSON("/api/accounts")]); }
+  catch (e) { $("grid").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const cats = ["Hate", "Sexual", "Violence", "Selfharm"];
+  $("grid").innerHTML = `<form class="card form" id="gform">
+    <h3>Create a guardrail (content filter)</h3>
+    <label>Account<select id="gacc">${accs.map(a => `<option>${esc(a.name)}</option>`).join("")}</select></label>
+    <label>Name<input id="gname" required maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_.\\-]*" placeholder="strict-internal"></label>
+    <div class="meta">Block content at this severity and above (applied to both prompts and completions). Low is strictest.</div>
+    ${cats.map(c => `<label>${c}<select class="thr" data-c="${c}"><option>Low</option><option selected>Medium</option><option>High</option></select></label>`).join("")}
+    <div><button class="primary" id="ggo" type="submit">Create guardrail</button> <span id="gmsg"></span></div>
+    <div class="meta">Assigning it to a model deployment is done in the Foundry portal (Models + endpoints &rarr; deployment &rarr; Content filter).</div>
+  </form>` + (gs.length ? gs.map(i => `<div class="card">${RENDER.guardrails(i)}</div>`).join("") : '<div class="empty">No guardrails found.</div>');
+  $("gform").onsubmit = async e => {
+    e.preventDefault(); const msg = $("gmsg");
+    $("ggo").disabled = true; msg.className = ""; msg.textContent = "Creating…";
+    try {
+      const thresholds = Object.fromEntries([...document.querySelectorAll(".thr")].map(s => [s.dataset.c, s.value]));
+      const d = await post("/api/guardrails/create", {account: $("gacc").value, name: $("gname").value.trim(), thresholds});
+      msg.className = "ok"; msg.textContent = `Created "${d.name}".`;
+      setTimeout(drawGuardrails, 800);
+    } catch (err) { msg.className = "bad"; msg.textContent = err.message; }
+    finally { $("ggo").disabled = false; }
+  };
+}
+
+async function drawPlayground() {
+  $("grid").innerHTML = '<div class="empty">Loading…</div>';
+  let deps, agents;
+  try { [deps, agents] = await Promise.all([getJSON("/api/deployments"), getJSON("/api/agents")]); }
+  catch (e) { $("grid").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  deps = deps.filter(d => !/embed/i.test(d.name + (d.model || "")));
+  agents = agents.filter(a => a.generation === "new");
+  if (!deps.length && !agents.length) { $("grid").innerHTML = '<div class="empty">No chat models or agents found.</div>'; return; }
+  $("grid").innerHTML = `<div class="card form wide">
+    <h3>Playground</h3>
+    <label>Target<select id="ptarget">
+      ${deps.length ? `<optgroup label="Models">${deps.map((d,i) => `<option value="m${i}">${esc(d.name)} (${esc(d.account)})</option>`).join("")}</optgroup>` : ""}
+      ${agents.length ? `<optgroup label="Agents">${agents.map((a,i) => `<option value="a${i}">${esc(a.name)} (${esc(a.project)})</option>`).join("")}</optgroup>` : ""}
+    </select></label>
+    <div id="popts" style="display:flex;gap:8px;flex-wrap:wrap">
+      <label style="flex:1;min-width:240px">System prompt<input id="psys" placeholder="You are a helpful assistant."></label>
+      <label>Temperature<input id="ptemp" type="number" min="0" max="2" step="0.1" value="0.7" style="width:90px"></label>
+    </div>
+    <div id="clog" style="height:320px"></div>
+    <form id="pform" style="display:flex;gap:6px"><input id="pin" required maxlength="4000" placeholder="Type a message…" autocomplete="off">
+      <button class="primary">Send</button><button type="button" id="preset">Clear</button></form>
+  </div>`;
+  let msgs = [], prev = null;
+  const target = () => { const v = $("ptarget").value; return v[0] === "m" ? {m: deps[+v.slice(1)]} : {a: agents[+v.slice(1)]}; };
+  const reset = () => { msgs = []; prev = null; $("clog").innerHTML = ""; $("popts").hidden = !target().m; };
+  $("ptarget").onchange = reset; $("preset").onclick = reset; reset();
+  $("pform").onsubmit = async e => {
+    e.preventDefault();
+    const text = $("pin").value; $("pin").value = ""; logLine("u", "You: " + text);
+    const t = target();
+    try {
+      if (t.m) {
+        const sys = $("psys").value.trim();
+        msgs.push({role: "user", content: text});
+        const d = await post("/api/playground/chat", {account: t.m.account, deployment: t.m.name, temperature: +$("ptemp").value || 0,
+          messages: (sys ? [{role: "system", content: sys}] : []).concat(msgs)});
+        msgs.push({role: "assistant", content: d.text}); logLine("", d.text + (d.finish && d.finish !== "stop" ? `\n[${d.finish}]` : ""));
+      } else {
+        const d = await post("/api/agents/chat", {...ref(t.a), message: text, previous: prev});
+        prev = d.id; logLine("", d.text);
+      }
+    } catch (err) { if (t.m) msgs.pop(); logLine("bad", err.message); }
+  };
+}
+
+const PAGES = {
+  marketplace: ["Marketplace", "Search agents, models, MCP servers, knowledge bases and guardrails across all your Azure AI Foundry projects."],
+  factory: ["Agent Factory", "Create an agent: choose a model, write its instructions, attach MCP servers and apply a guardrail."],
+  guardrails: ["Guardrails", "Content-filter policies that screen prompts and completions. Review existing ones or create your own."],
+  playground: ["Playground", "Try a model or an agent interactively. A good place to test how a guardrail behaves."],
+};
+const ICON = {
+  marketplace: '<path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v11h18V9M9 20v-6h6v6"/>',
+  factory: '<path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/>',
+  guardrails: '<path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6zM9 12l2.2 2.2L15.5 10"/>',
+  playground: '<path d="M8 5v14l11-7z"/>',
+};
+const svg = k => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+
+function renderHome() {
+  const n = k => counts[k] ?? "…";
+  const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+  const hero = (k, foot) => `<a class="card hero" href="#/${k}"><span class="ico">${svg(k)}</span><h3>${PAGES[k][0]}</h3>
+    <p>${PAGES[k][1]}</p><span class="go">${foot} &rarr;</span></a>`;
+  $("grid").innerHTML = `<section class="banner"><h2>Agent Hub</h2>
+      <p>Discover, build, secure and test AI agents across your Azure AI Foundry projects, in one place.</p>
+      <div class="stats">${stat(n("agents"), "Agents")}${stat(n("deployments"), "Model deployments")}${stat(n("mcp"), "MCP servers")}${stat(n("knowledge"), "Knowledge bases")}${stat(n("guardrails"), "Guardrails")}</div>
+    </section>` + hero("marketplace", "Browse the catalog") + hero("factory", "Create an agent") + hero("guardrails", "Manage guardrails") + hero("playground", "Open the playground");
+}
+
+function route() {
+  const v = location.hash.replace(/^#\/?/, "") || "home";
+  const page = PAGES[v], market = v === "marketplace";
+  $("bar").hidden = $("tabs").hidden = $("ask").hidden = !market;
+  $("back").hidden = !page;
+  $("title").hidden = $("sub").hidden = !page;
+  if (page) { $("title").textContent = page[0]; $("sub").textContent = page[1]; }
+  document.title = (page ? page[0] + " · " : "") + "Agent Hub";
+  document.querySelectorAll("#topnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v));
+  if (market) { drawTabs(); load(); }
+  else if (v === "factory") { const pre = editing; editing = null; drawCreate(pre || undefined); }
+  else if (v === "guardrails") drawGuardrails();
+  else if (v === "playground") drawPlayground();
+  else renderHome();
+}
+window.onhashchange = route;
+route();      // render immediately; the Azure scan behind summary() can take a while
+summary();
+</script>
+</body>
+</html>

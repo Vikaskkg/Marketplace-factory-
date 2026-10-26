@@ -1,0 +1,6 @@
+﻿fastapi>=0.115
+uvicorn[standard]>=0.30
+azure-identity>=1.17
+requests>=2.32
+python-dotenv>=1.0
+msal>=1.30
